@@ -94,10 +94,6 @@ def generate_image():
     else:
         generator = None
         
-    # Validation for width and height
-    if width % 8 != 0 or height % 8 != 0:
-        return jsonify({"error": "Width and height must be divisible by 8"}), 400
-
     # Validation for image format
     if image_format not in ["jpeg", "png"]:
         return jsonify({"error": "Invalid image format. Choose 'jpeg' or 'png'."}), 400
