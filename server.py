@@ -8,6 +8,7 @@ import base64
 
 # Function to parse command-line arguments
 def parse_args():
+    import argparse
     parser = argparse.ArgumentParser(description='Stable Diffusion Server')
     parser.add_argument('--model', type=str, default='stabilityai/stable-diffusion-xl-base-1.0', help='Model name for DiffusionPipeline')
     parser.add_argument('--unet', type=str, default='latent-consistency/lcm-sdxl', help='UNet model name')
