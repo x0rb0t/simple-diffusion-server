@@ -69,7 +69,7 @@ def generate_image():
     guidance_scale = data.get("guidance_scale", 1.0)
     width = data.get("width", 1024)
     height = data.get("height", 1024)
-    image_format = data.get("format", "jpeg").upper()  # Default format is JPEG
+    image_format = data.get("format", "jpeg") # Default format is jpeg
 
     # Validation for width and height
     if width % 8 != 0 or height % 8 != 0:
