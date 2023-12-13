@@ -36,7 +36,7 @@
    Optionally, set the environment variables for the default model, UNet model, LoRA directories, and scales:
    ```bash
    export MODEL_NAME="stabilityai/stable-diffusion-xl-base-1.0"
-   export UNET_MODEL="latent-consistency/lcm-sdxl" # Or use can use "default" to use default unet of your model
+   export UNET_MODEL="latent-consistency/lcm-sdxl" 
    export LORA_DIRS="lora1.safetensors:lora2.safetensors"
    export LORA_SCALES="0.7:0.7"
    ```
@@ -62,8 +62,8 @@ curl -X POST http://localhost:3101/generate-image \
      -H "Content-Type: application/json" \
      -d '{
          "prompt": "a surreal landscape, digital art",
-         "num_inference_steps": 4,
-         "guidance_scale": 1,
+         "num_inference_steps": 30,
+         "guidance_scale": 8,
          "width": 1024,
          "height": 1024,
          "format": "jpeg"
