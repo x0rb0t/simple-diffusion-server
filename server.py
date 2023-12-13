@@ -65,6 +65,7 @@ pipe.to("cuda")
 def generate_image():
     data = request.json
     prompt = data.get("prompt")
+    negative_prompt = data.get("negative_prompt", None)  # New negative prompt parameter
     num_inference_steps = data.get("num_inference_steps", 4)
     guidance_scale = data.get("guidance_scale", 1.0)
     width = data.get("width", 1024)
@@ -80,7 +81,7 @@ def generate_image():
         return jsonify({"error": "Invalid image format. Choose 'jpeg' or 'png'."}), 400
 
     # Image generation
-    image = pipe(prompt, width=width, height=height, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale).images[0]
+    image = pipe(prompt, negative_prompt=negative_prompt, width=width, height=height, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale).images[0]
 
     # Convert image to Data URI
     buffer = io.BytesIO()
