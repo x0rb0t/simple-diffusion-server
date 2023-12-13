@@ -1,4 +1,3 @@
-import argparse
 import os
 from flask import Flask, request, jsonify
 from diffusers import UNet2DConditionModel, DiffusionPipeline, LCMScheduler
@@ -7,13 +6,36 @@ from PIL import Image
 import io
 import base64
 
-# Argument parsing
-parser = argparse.ArgumentParser(description='Stable Diffusion Server')
-parser.add_argument('--model', type=str, default=os.getenv('MODEL_NAME', 'stabilityai/stable-diffusion-xl-base-1.0'), help='Model name for DiffusionPipeline')
-parser.add_argument('--unet', type=str, default=os.getenv('UNET_MODEL', 'latent-consistency/lcm-sdxl'), help='UNet model name')
-parser.add_argument('--lora_dirs', type=str, default=os.getenv('LORA_DIRS', ''), help='Colon-separated list of LoRA directories')
-parser.add_argument('--lora_scales', type=str, default=os.getenv('LORA_SCALES', ''), help='Colon-separated list of LoRA scales')
-args = parser.parse_args()
+# Function to parse command-line arguments
+def parse_args():
+    parser = argparse.ArgumentParser(description='Stable Diffusion Server')
+    parser.add_argument('--model', type=str, default='stabilityai/stable-diffusion-xl-base-1.0', help='Model name for DiffusionPipeline')
+    parser.add_argument('--unet', type=str, default='latent-consistency/lcm-sdxl', help='UNet model name')
+    parser.add_argument('--lora_dirs', type=str, default='', help='Colon-separated list of LoRA directories')
+    parser.add_argument('--lora_scales', type=str, default='', help='Colon-separated list of LoRA scales')
+    return parser.parse_args()
+
+# Simple class to mimic argparse.Namespace behavior
+class Args:
+    def __init__(self, model, unet, lora_dirs, lora_scales):
+        self.model = model
+        self.unet = unet
+        self.lora_dirs = lora_dirs
+        self.lora_scales = lora_scales
+
+# Check if running under Gunicorn
+is_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "")
+
+if not is_gunicorn:
+    args = parse_args()
+else:
+    # Create Args from environment variables
+    args = Args(
+        model=os.getenv('MODEL_NAME', 'stabilityai/stable-diffusion-xl-base-1.0'),
+        unet=os.getenv('UNET_MODEL', 'latent-consistency/lcm-sdxl'),
+        lora_dirs=os.getenv('LORA_DIRS', ''),
+        lora_scales=os.getenv('LORA_SCALES', '')
+    )
 
 app = Flask(__name__)
 
