@@ -11,10 +11,10 @@ def parse_args():
     import argparse
     parser = argparse.ArgumentParser(description='Stable Diffusion Server')
     parser.add_argument('--model', type=str, default='stabilityai/stable-diffusion-xl-base-1.0', help='Model name for DiffusionPipeline')
-    parser.add_argument('--unet', type=str, default='latent-consistency/lcm-sdxl', help='UNet model name')
+    parser.add_argument('--unet', type=str, default='', help='UNet model name')
     parser.add_argument('--lora_dirs', type=str, default='', help='Colon-separated list of LoRA directories')
     parser.add_argument('--lora_scales', type=str, default='', help='Colon-separated list of LoRA scales')
-    parser.add_argument('--scheduler', type=str, default='lcm', help='Scheduler')
+    parser.add_argument('--scheduler', type=str, default='euler_a', help='Scheduler')
     return parser.parse_args()
 
 # Simple class to mimic argparse.Namespace behavior
@@ -35,7 +35,7 @@ else:
     # Create Args from environment variables
     args = Args(
         model=os.getenv('MODEL_NAME', 'stabilityai/stable-diffusion-xl-base-1.0'),
-        unet=os.getenv('UNET_MODEL', 'latent-consistency/lcm-sdxl'),
+        unet=os.getenv('UNET_MODEL', ''),
         lora_dirs=os.getenv('LORA_DIRS', ''),
         lora_scales=os.getenv('LORA_SCALES', ''),
         scheduler=os.getenv('SCHEDULER', 'lcm'),
@@ -44,7 +44,7 @@ else:
 app = Flask(__name__)
 
 # Load the models
-if args.unet.lower() == 'default':
+if args.unet == '':
     pipe = DiffusionPipeline.from_pretrained(args.model, torch_dtype=torch.float16, variant="fp16")
 else:
     unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.float16, variant="fp16")
@@ -69,8 +69,7 @@ elif args.scheduler == "euler_a":
     pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
 
 pipe.to("cuda")
-    
-pipe.to("cuda")
+
 
 @app.route('/generate-image', methods=['POST'])
 def generate_image():
@@ -79,10 +78,16 @@ def generate_image():
     negative_prompt = data.get("negative_prompt", None)  # New negative prompt parameter
     num_inference_steps = data.get("num_inference_steps", 4)
     guidance_scale = data.get("guidance_scale", 1.0)
+    seed = data.get("seed", None)  # Retrieve seed from request; default is None
     width = data.get("width", 1024)
     height = data.get("height", 1024)
     image_format = data.get("format", "jpeg") # Default format is jpeg
 
+    if seed is not None:
+        generator = torch.manual_seed(seed)
+    else:
+        generator = None
+        
     # Validation for width and height
     if width % 8 != 0 or height % 8 != 0:
         return jsonify({"error": "Width and height must be divisible by 8"}), 400
