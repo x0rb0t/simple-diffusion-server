@@ -2,7 +2,8 @@ import os
 from flask import Flask, request, jsonify
 from diffusers import UNet2DConditionModel, DiffusionPipeline, LCMScheduler, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler
 import torch
-from PIL import Image
+from PIL import Image, ImageOps
+
 import io
 import base64
 
@@ -79,10 +80,15 @@ def generate_image():
     num_inference_steps = data.get("num_inference_steps", 4)
     guidance_scale = data.get("guidance_scale", 1.0)
     seed = data.get("seed", None)  # Retrieve seed from request; default is None
-    width = data.get("width", 1024)
-    height = data.get("height", 1024)
     image_format = data.get("format", "jpeg") # Default format is jpeg
 
+    original_width = data.get("width", 1024)
+    original_height = data.get("height", 1024)
+    
+    # Adjust width and height to the nearest multiple of 8
+    width = ((original_width + 7) // 8) * 8
+    height = ((original_height + 7) // 8) * 8
+    
     if seed is not None:
         generator = torch.manual_seed(seed)
     else:
@@ -98,6 +104,15 @@ def generate_image():
 
     # Image generation
     image = pipe(prompt, negative_prompt=negative_prompt, width=width, height=height, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale).images[0]
+
+    if (width != original_width) or (height != original_height):
+        # Calculate cropping dimensions
+        left = (width - original_width) // 2
+        top = (height - original_height) // 2
+        right = left + original_width
+        bottom = top + original_height
+
+        image = image.crop((left, top, right, bottom))
 
     # Convert image to Data URI
     buffer = io.BytesIO()
