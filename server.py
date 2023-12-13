@@ -38,7 +38,7 @@ else:
         unet=os.getenv('UNET_MODEL', ''),
         lora_dirs=os.getenv('LORA_DIRS', ''),
         lora_scales=os.getenv('LORA_SCALES', ''),
-        scheduler=os.getenv('SCHEDULER', 'lcm'),
+        scheduler=os.getenv('SCHEDULER', 'euler_a'),
     )
 
 app = Flask(__name__)
