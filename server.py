@@ -10,7 +10,7 @@ import base64
 # Argument parsing
 parser = argparse.ArgumentParser(description='Stable Diffusion Server')
 parser.add_argument('--model', type=str, default=os.getenv('MODEL_NAME', 'stabilityai/stable-diffusion-xl-base-1.0'), help='Model name for DiffusionPipeline')
-parser.add_argument('--unet', type=str, default=os.getenv('UNET_MODEL', 'default'), help='UNet model name')
+parser.add_argument('--unet', type=str, default=os.getenv('UNET_MODEL', 'latent-consistency/lcm-sdxl'), help='UNet model name')
 parser.add_argument('--lora_dirs', type=str, default=os.getenv('LORA_DIRS', ''), help='Colon-separated list of LoRA directories')
 parser.add_argument('--lora_scales', type=str, default=os.getenv('LORA_SCALES', ''), help='Colon-separated list of LoRA scales')
 args = parser.parse_args()
@@ -18,8 +18,11 @@ args = parser.parse_args()
 app = Flask(__name__)
 
 # Load the models
-unet = None if args.unet.lower() == 'default' else UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.float16, variant="fp16")
-pipe = DiffusionPipeline.from_pretrained(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
+if args.unet.lower() == 'default':
+    pipe = DiffusionPipeline.from_pretrained(args.model, torch_dtype=torch.float16, variant="fp16")
+else:
+    unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.float16, variant="fp16")
+    pipe = DiffusionPipeline.from_pretrained(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
 
 # Process and load LoRA weights and scales
 lora_dirs = args.lora_dirs.split(':') if args.lora_dirs else []
