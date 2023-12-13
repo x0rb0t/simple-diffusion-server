@@ -77,10 +77,10 @@ def generate_image():
     data = request.json
     prompt = data.get("prompt")
     negative_prompt = data.get("negative_prompt", None)  # New negative prompt parameter
-    num_inference_steps = data.get("num_inference_steps", 4)
-    guidance_scale = data.get("guidance_scale", 1.0)
+    num_inference_steps = data.get("num_inference_steps", 30)
+    guidance_scale = data.get("guidance_scale", 7.5)
     seed = data.get("seed", None)  # Retrieve seed from request; default is None
-    image_format = data.get("format", "jpeg") # Default format is jpeg
+    image_format = data.get("format", "jpeg").lower() # Default format is jpeg
 
     original_width = data.get("width", 1024)
     original_height = data.get("height", 1024)
