@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify
-from diffusers import UNet2DConditionModel, DiffusionPipeline, LCMScheduler
+from diffusers import UNet2DConditionModel, DiffusionPipeline, LCMScheduler, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler
 import torch
 from PIL import Image
 import io
@@ -14,15 +14,17 @@ def parse_args():
     parser.add_argument('--unet', type=str, default='latent-consistency/lcm-sdxl', help='UNet model name')
     parser.add_argument('--lora_dirs', type=str, default='', help='Colon-separated list of LoRA directories')
     parser.add_argument('--lora_scales', type=str, default='', help='Colon-separated list of LoRA scales')
+    parser.add_argument('--scheduler', type=str, default='lcm', help='Scheduler')
     return parser.parse_args()
 
 # Simple class to mimic argparse.Namespace behavior
 class Args:
-    def __init__(self, model, unet, lora_dirs, lora_scales):
+    def __init__(self, model, unet, lora_dirs, lora_scales, scheduler):
         self.model = model
         self.unet = unet
         self.lora_dirs = lora_dirs
         self.lora_scales = lora_scales
+        self.scheduler = scheduler
 
 # Check if running under Gunicorn
 is_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "")
@@ -35,7 +37,8 @@ else:
         model=os.getenv('MODEL_NAME', 'stabilityai/stable-diffusion-xl-base-1.0'),
         unet=os.getenv('UNET_MODEL', 'latent-consistency/lcm-sdxl'),
         lora_dirs=os.getenv('LORA_DIRS', ''),
-        lora_scales=os.getenv('LORA_SCALES', '')
+        lora_scales=os.getenv('LORA_SCALES', ''),
+        scheduler=os.getenv('SCHEDULER', 'lcm'),
     )
 
 app = Flask(__name__)
@@ -58,7 +61,15 @@ for ldir, lsc in zip(lora_dirs, lora_scales):
     pipe.load_lora_weights(ldir)
     pipe.fuse_lora(lora_scale=lsc)
 
-pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
+if args.scheduler == "lcm":
+    pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
+elif args.scheduler == "euler":
+    pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
+elif args.scheduler == "euler_a":
+    pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+
+pipe.to("cuda")
+    
 pipe.to("cuda")
 
 @app.route('/generate-image', methods=['POST'])
