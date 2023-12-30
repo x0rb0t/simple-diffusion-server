@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify
-from diffusers import UNet2DConditionModel, DiffusionPipeline, LCMScheduler, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler
+from diffusers import UNet2DConditionModel, StableDiffusionPipeline, DiffusionPipeline, LCMScheduler, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler
 import torch
 from PIL import Image, ImageOps
 
@@ -30,6 +30,9 @@ class Args:
 # Check if running under Gunicorn
 is_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "")
 
+def is_local_file(path):
+    return os.path.isfile(path)
+    
 if not is_gunicorn:
     args = parse_args()
 else:
@@ -46,10 +49,16 @@ app = Flask(__name__)
 
 # Load the models
 if args.unet == '':
-    pipe = DiffusionPipeline.from_pretrained(args.model, torch_dtype=torch.float16, variant="fp16")
+    if is_local_file(args.model):
+        pipe = StableDiffusionPipeline.from_single_file(args.model, torch_dtype=torch.float16, variant="fp16")
+    else:    
+        pipe = DiffusionPipeline.from_pretrained(args.model, torch_dtype=torch.float16, variant="fp16")
 else:
     unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.float16, variant="fp16")
-    pipe = DiffusionPipeline.from_pretrained(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
+    if is_local_file(args.model):
+        pipe = DiffusionPipeline.from_single_file(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
+    else:
+        pipe = DiffusionPipeline.from_pretrained(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
 
 # Process and load LoRA weights and scales
 lora_dirs = args.lora_dirs.split(':') if args.lora_dirs else []
