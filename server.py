@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify
-from diffusers import UNet2DConditionModel, StableDiffusionPipeline, DiffusionPipeline, LCMScheduler, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler
+from diffusers import UNet2DConditionModel, StableDiffusionPipeline, StableDiffusionXLPipeline, DiffusionPipeline, LCMScheduler, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler
 import torch
 from PIL import Image, ImageOps
 
@@ -50,13 +50,13 @@ app = Flask(__name__)
 # Load the models
 if args.unet == '':
     if is_local_file(args.model):
-        pipe = StableDiffusionPipeline.from_single_file(args.model, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
+        pipe = StableDiffusionXLPipeline.from_single_file(args.model, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
     else:    
         pipe = DiffusionPipeline.from_pretrained(args.model, torch_dtype=torch.float16, variant="fp16")
 else:
     unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.float16, variant="fp16")
     if is_local_file(args.model):
-        pipe = StableDiffusionPipeline.from_single_file(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
+        pipe = StableDiffusionXLPipeline.from_single_file(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
     else:
         pipe = DiffusionPipeline.from_pretrained(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
 
