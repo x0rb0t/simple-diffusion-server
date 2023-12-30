@@ -56,7 +56,7 @@ if args.unet == '':
 else:
     unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.float16, variant="fp16")
     if is_local_file(args.model):
-        pipe = DiffusionPipeline.from_single_file(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
+        pipe = StableDiffusionPipeline.from_single_file(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
     else:
         pipe = DiffusionPipeline.from_pretrained(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
 
