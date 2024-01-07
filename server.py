@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify
-from diffusers import UNet2DConditionModel, StableDiffusionPipeline, StableDiffusionXLPipeline, DiffusionPipeline, LCMScheduler, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler
+from diffusers import UNet2DConditionModel, StableDiffusionPipeline, StableDiffusionXLPipeline, DiffusionPipeline, LCMScheduler, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler, AutoencoderKL
 import torch
 from PIL import Image, ImageOps
 
@@ -46,19 +46,19 @@ else:
     )
 
 app = Flask(__name__)
-
+vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
 # Load the models
 if args.unet == '':
     if is_local_file(args.model):
-        pipe = StableDiffusionXLPipeline.from_single_file(args.model, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
+        pipe = StableDiffusionXLPipeline.from_single_file(args.model, vae = vae, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
     else:    
-        pipe = DiffusionPipeline.from_pretrained(args.model, torch_dtype=torch.float16, variant="fp16")
+        pipe = DiffusionPipeline.from_pretrained(args.model, vae = vae, torch_dtype=torch.float16, variant="fp16")
 else:
     unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.float16, variant="fp16")
     if is_local_file(args.model):
-        pipe = StableDiffusionXLPipeline.from_single_file(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
+        pipe = StableDiffusionXLPipeline.from_single_file(args.model, vae = vae, unet=unet, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
     else:
-        pipe = DiffusionPipeline.from_pretrained(args.model, unet=unet, torch_dtype=torch.float16, variant="fp16")
+        pipe = DiffusionPipeline.from_pretrained(args.model, vae = vae, unet=unet, torch_dtype=torch.float16, variant="fp16")
 
 # Process and load LoRA weights and scales
 lora_dirs = args.lora_dirs.split(':') if args.lora_dirs else []
