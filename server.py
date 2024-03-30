@@ -95,10 +95,14 @@ def generate_image():
             return jsonify({"error": "Invalid image format. Choose 'jpeg' or 'png'."}), 400
 
         init_image = Image.new("RGB", (width, height))
+        init_image_tensor = torch.from_numpy(np.array(init_image)).float() / 255.0
+        init_image_tensor = init_image_tensor.permute(2, 0, 1).unsqueeze(0)
+        init_image_tensor = init_image_tensor.half().cuda()
+
         generated_image = pipe(
             prompt,
             negative_prompt=negative_prompt,
-            image=init_image,
+            image=init_image_tensor,
             strength=1,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
@@ -209,11 +213,7 @@ def generate_img2img():
         composite_image_tensor = composite_image_tensor.half().cuda()
         if composite_mask_tensor is not None:
             composite_mask_tensor = composite_mask_tensor.half().cuda()
-
-        # Print tensor sizes
-        print(composite_image_tensor.size())
-        print(composite_mask_tensor.size() if composite_mask_tensor is not None else None)
-
+ 
         # Generate the image using the composite image and mask
         generated_image = pipe(
             prompt,
