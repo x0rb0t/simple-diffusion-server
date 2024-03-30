@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify
-from diffusers import UNet2DConditionModel, StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler, AutoencoderKL
+from diffusers import UNet2DConditionModel, StableDiffusionXLPipeline, StableDiffusionXLInpaintPipeline, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler, AutoencoderKL
 import torch
 from PIL import Image, ImageOps
 import io
@@ -33,15 +33,15 @@ def load_models():
     print("Loading models...")
     if args.unet == '':
         if is_local_file(args.model):
-            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
+            pipe = StableDiffusionXLInpaintPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
         else:    
-            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16")
+            pipe = StableDiffusionXLInpaintPipeline.from_pretrained(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16")
     else:
         unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.bfloat16, variant="fp16")
         if is_local_file(args.model):
-            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
+            pipe = StableDiffusionXLInpaintPipeline.from_single_file(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
         else:
-            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16")
+            pipe = StableDiffusionXLInpaintPipeline.from_pretrained(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16")
 
     lora_dirs = args.lora_dirs.split(':') if args.lora_dirs else []
     lora_scales = [float(scale) for scale in args.lora_scales.split(':')] if args.lora_scales else []
@@ -98,11 +98,15 @@ def generate_image():
         init_image_tensor = torch.from_numpy(np.array(init_image)).float() / 255.0
         init_image_tensor = init_image_tensor.permute(2, 0, 1).unsqueeze(0)
         init_image_tensor = init_image_tensor.half().cuda()
+        white_mask = Image.new("L", (width, height), 255)
+        while_mask_tensor = torch.from_numpy(np.array(white_mask)).float() / 255.0
+        while_mask_tensor = while_mask_tensor.unsqueeze(0).unsqueeze(0)
 
         generated_image = pipe(
             prompt,
             negative_prompt=negative_prompt,
             image=init_image_tensor,
+            mask_image=while_mask_tensor,
             strength=1,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
@@ -121,7 +125,7 @@ def generate_image():
         if image_format == "jpeg":
             # Convert the image to RGB color mode for JPEG format
             generated_image = generated_image.convert("RGB")
-            
+
         generated_image.save(buffer, format=image_format)
         mime_type = "image/jpeg" if image_format == "jpeg" else "image/png"
         data_uri = "data:" + mime_type + ";base64," + base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -203,8 +207,9 @@ def generate_img2img():
                     y = image_data["y"]
                     sx = image_data["sx"]
                     sy = image_data["sy"]
-                    image = image.resize((int(image.width * sx), int(image.height * sy)))
-                    composite_image.paste(image, (x, y), mask=image)
+                    if (sx != 1) or (sy != 1):
+                        image = image.resize((int(image.width * sx), int(image.height * sy)))
+                    composite_image.paste(image, (x, y), image)
                 else:
                     composite_image.paste(image_data, (0, 0))
             return composite_image
