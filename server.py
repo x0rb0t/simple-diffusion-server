@@ -94,7 +94,7 @@ def generate_image():
         if image_format not in ["jpeg", "png"]:
             return jsonify({"error": "Invalid image format. Choose 'jpeg' or 'png'."}), 400
 
-        image = pipe(prompt, negative_prompt=negative_prompt, width=width, height=height, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale).images[0]
+        image = pipe(prompt, negative_prompt=negative_prompt, width=width, height=height, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
 
         if (width != original_width) or (height != original_height):
             left = (width - original_width) // 2
