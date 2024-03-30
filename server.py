@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify
-from diffusers import UNet2DConditionModel, StableDiffusionPipeline, StableDiffusionXLPipeline, DiffusionPipeline, LCMScheduler, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler, AutoencoderKL
+from diffusers import UNet2DConditionModel, StableDiffusionPipeline, StableDiffusionXLPipeline, DiffusionPipeline, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler, AutoencoderKL
 import torch
 from PIL import Image, ImageOps
 import io
@@ -29,6 +29,7 @@ app = Flask(__name__)
 vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
 
 def load_models():
+    print("Loading models...")
     if args.unet == '':
         if is_local_file(args.model):
             pipe = StableDiffusionXLPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
@@ -51,9 +52,7 @@ def load_models():
         pipe.load_lora_weights(ldir)
         pipe.fuse_lora(lora_scale=lsc)
 
-    if args.scheduler == "lcm":
-        pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
-    elif args.scheduler == "euler":
+    if args.scheduler == "euler":
         pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
     elif args.scheduler == "euler_a":
         pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
@@ -61,9 +60,11 @@ def load_models():
     pipe.to("cuda")
 
     # Compile the UNet and VAE
+    print("Compiling models...")
     pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
     pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
 
+    print("Models loaded and compiled.")
     return pipe
 
 pipe = load_models()
