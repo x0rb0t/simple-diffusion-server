@@ -248,6 +248,10 @@ def generate_img2img():
             guidance_scale=guidance_scale,
             generator=generator).images[0]
         
+        print("generated_image size:", generated_image.size)
+        print("composite_mask size:", composite_mask.size if composite_mask is not None else None)
+        print("composite_mask_tensor size:", composite_mask_tensor.size() if composite_mask_tensor is not None else None)
+
         gen_width, gen_height = generated_image.size
         if (gen_width != original_width) or (gen_width != original_height):
             left = (gen_width - original_width) // 2
