@@ -98,7 +98,7 @@ def generate_image():
         init_image_tensor = torch.from_numpy(np.array(init_image)).float() / 255.0
         init_image_tensor = init_image_tensor.permute(2, 0, 1).unsqueeze(0)
         init_image_tensor = init_image_tensor.half().cuda()
-        
+
         white_mask = Image.new("L", (width, height), 255)
         while_mask_tensor = torch.from_numpy(np.array(white_mask)).float() / 255.0
         while_mask_tensor = while_mask_tensor.unsqueeze(0).unsqueeze(0)
@@ -232,7 +232,11 @@ def generate_img2img():
         composite_image_tensor = composite_image_tensor.half().cuda()
         if composite_mask_tensor is not None:
             composite_mask_tensor = composite_mask_tensor.half().cuda()
- 
+
+        # Print size
+        print(composite_image_tensor.size())
+        print(composite_mask_tensor.size() if composite_mask_tensor is not None else None)
+
         # Generate the image using the composite image and mask
         generated_image = pipe(
             prompt,
@@ -243,6 +247,8 @@ def generate_img2img():
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
             generator=generator).images[0]
+        
+        print(generated_image.size)
 
         if extract_mask and composite_mask_tensor is not None:
             # Extract the generated content using the mask
