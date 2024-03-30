@@ -115,12 +115,12 @@ def generate_image():
             generator=generator
         ).images[0]
 
-        if (width != original_width) or (height != original_height):
-            left = (width - original_width) // 2
-            top = (height - original_height) // 2
+        gen_width, gen_height = generated_image.size
+        if (gen_width != original_width) or (gen_width != original_height):
+            left = (gen_width - original_width) // 2
+            top = (gen_height - original_height) // 2
             right = left + original_width
             bottom = top + original_height
-
             generated_image = generated_image.crop((left, top, right, bottom))
 
         buffer = io.BytesIO()
@@ -248,21 +248,21 @@ def generate_img2img():
             guidance_scale=guidance_scale,
             generator=generator).images[0]
         
-        print(generated_image.size)
+        gen_width, gen_height = generated_image.size
+        if (gen_width != original_width) or (gen_width != original_height):
+            left = (gen_width - original_width) // 2
+            top = (gen_height - original_height) // 2
+            right = left + original_width
+            bottom = top + original_height
+            generated_image = generated_image.crop((left, top, right, bottom))
 
         if extract_mask and composite_mask_tensor is not None:
             # Extract the generated content using the mask
-            extracted_image = Image.composite(generated_image, Image.new("RGBA", generated_image.size, extract_color), composite_mask)
+            extracted_image = Image.composite(generated_image.convert("RGBA"), Image.new("RGBA", generated_image.size, extract_color), composite_mask)
         else:
             extracted_image = generated_image
 
-        if (width != original_width) or (height != original_height):
-            left = (width - original_width) // 2
-            top = (height - original_height) // 2
-            right = left + original_width
-            bottom = top + original_height
-
-            extracted_image = extracted_image.crop((left, top, right, bottom))
+        
 
         buffer = io.BytesIO()
         if image_format == "jpeg":
