@@ -32,17 +32,15 @@ def load_models():
     print("Loading models...")
     if args.unet == '':
         if is_local_file(args.model):
-            pipe = StableDiffusionXLPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
+            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
         else:    
-            pipe = StableDiffusionXLPipeline.from_pretrained(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16")
+            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16")
     else:
         unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.bfloat16, variant="fp16")
         if is_local_file(args.model):
-            pipe = StableDiffusionXLPipeline.from_single_file(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
+            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
         else:
-            pipe = StableDiffusionXLPipeline.from_pretrained(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16")
-
-    img2img_pipe = StableDiffusionXLImg2ImgPipeline(**pipe.components)
+            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16")
 
     lora_dirs = args.lora_dirs.split(':') if args.lora_dirs else []
     lora_scales = [float(scale) for scale in args.lora_scales.split(':')] if args.lora_scales else []
@@ -53,29 +51,19 @@ def load_models():
     for ldir, lsc in zip(lora_dirs, lora_scales):
         pipe.load_lora_weights(ldir)
         pipe.fuse_lora(lora_scale=lsc)
-        img2img_pipe.load_lora_weights(ldir)
-        img2img_pipe.fuse_lora(lora_scale=lsc)
 
     if args.scheduler == "euler":
-        scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
+        pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
     elif args.scheduler == "euler_a":
-        scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
-    else:
-        scheduler = pipe.scheduler
-
-    pipe.scheduler = scheduler
-    img2img_pipe.scheduler = scheduler
+        pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
 
     pipe.to("cuda")
-    img2img_pipe.to("cuda")
-
     pipe.enable_vae_slicing()
-    img2img_pipe.enable_vae_slicing()
 
     print("Models loaded")
-    return pipe, img2img_pipe
+    return pipe
 
-pipe, img2img_pipe = load_models()
+pipe = load_models()
 
 app = Flask(__name__)
 
@@ -104,7 +92,8 @@ def generate_image():
         if image_format not in ["jpeg", "png"]:
             return jsonify({"error": "Invalid image format. Choose 'jpeg' or 'png'."}), 400
 
-        image = pipe(prompt, negative_prompt=negative_prompt, width=width, height=height, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
+        init_image = Image.new("RGB", (width, height))
+        generated_image = pipe(prompt, negative_prompt=negative_prompt, init_image=init_image, strength=1, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
 
         if (width != original_width) or (height != original_height):
             left = (width - original_width) // 2
@@ -112,10 +101,10 @@ def generate_image():
             right = left + original_width
             bottom = top + original_height
 
-            image = image.crop((left, top, right, bottom))
+            generated_image = generated_image.crop((left, top, right, bottom))
 
         buffer = io.BytesIO()
-        image.save(buffer, format=image_format)
+        generated_image.save(buffer, format=image_format)
         mime_type = "image/jpeg" if image_format == "jpeg" else "image/png"
         data_uri = "data:" + mime_type + ";base64," + base64.b64encode(buffer.getvalue()).decode('utf-8')
 
@@ -198,7 +187,7 @@ def generate_img2img():
         composite_mask = compose_images(masks, width, height) if masks else None
       
         # Generate the image using the composite image and mask
-        generated_image = img2img_pipe(prompt, negative_prompt=negative_prompt, image=composite_image, mask_image=composite_mask, strength=strength, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
+        generated_image = pipe(prompt, negative_prompt=negative_prompt, image=composite_image, mask_image=composite_mask, strength=strength, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
 
         if extract_mask and composite_mask is not None:
             # Extract the generated content using the mask
