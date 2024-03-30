@@ -6,6 +6,7 @@ from PIL import Image, ImageOps
 import io
 import base64
 import logging
+import numpy as np
 
 from utils import parse_args, Args, is_local_file
 
@@ -194,16 +195,31 @@ def generate_img2img():
 
         composite_image = compose_images(images, width, height).convert("RGB")
         composite_mask = compose_images(masks, width, height).convert("L") if masks else None
-        # Print image size
-        print(composite_image.size)
-        print(composite_mask.size if composite_mask is not None else None)
-        
+        #Convert to tensor
+        composite_image_tensor = torch.from_numpy(np.array(composite_image)).float() / 255.0
+        composite_image_tensor = composite_image_tensor.permute(2, 0, 1).unsqueeze(0)
+
+        if composite_mask is not None:
+            composite_mask_tensor = torch.from_numpy(np.array(composite_mask)).float() / 255.0
+            composite_mask_tensor = composite_mask_tensor.unsqueeze(0).unsqueeze(0)
+        else:
+            composite_mask_tensor = None
+
+        # Convert to fp16 and move to CUDA
+        composite_image_tensor = composite_image_tensor.half().cuda()
+        if composite_mask_tensor is not None:
+            composite_mask_tensor = composite_mask_tensor.half().cuda()
+
+        # Print tensor sizes
+        print(composite_image_tensor.size())
+        print(composite_mask_tensor.size() if composite_mask_tensor is not None else None)
+
         # Generate the image using the composite image and mask
         generated_image = pipe(
             prompt,
             negative_prompt=negative_prompt,
-            image=composite_image,
-            mask_image=composite_mask,
+            image=composite_image_tensor,
+            mask_image=composite_mask_tensor,
             strength=strength,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
