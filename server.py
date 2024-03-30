@@ -192,11 +192,12 @@ def generate_img2img():
                     composite_image.paste(image_data, (0, 0))
             return composite_image
 
-        composite_image = compose_images(images, width, height)
+        composite_image = compose_images(images, width, height).convert("RGB")
         composite_mask = compose_images(masks, width, height).convert("L") if masks else None
         # Print image size
         print(composite_image.size)
-        print(composite_mask.size)
+        print(composite_mask.size if composite_mask is not None else None)
+        
         # Generate the image using the composite image and mask
         generated_image = pipe(
             prompt,
