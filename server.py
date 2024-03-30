@@ -33,13 +33,13 @@ def load_models():
     print("Loading models...")
     if args.unet == '':
         if is_local_file(args.model):
-            pipe = StableDiffusionXLInpaintPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
+            pipe = StableDiffusionXLInpaintPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True, ignore_mismatched_sizes=True)
         else:    
             pipe = StableDiffusionXLInpaintPipeline.from_pretrained(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16")
     else:
         unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.bfloat16, variant="fp16")
         if is_local_file(args.model):
-            pipe = StableDiffusionXLInpaintPipeline.from_single_file(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
+            pipe = StableDiffusionXLInpaintPipeline.from_single_file(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True, ignore_mismatched_sizes=True)
         else:
             pipe = StableDiffusionXLInpaintPipeline.from_pretrained(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16")
 
