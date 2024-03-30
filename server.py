@@ -61,8 +61,8 @@ def load_models():
 
     # Compile the UNet and VAE
     print("Compiling models...")
-    pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
-    pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
+    #pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
+    #pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
 
     print("Models loaded and compiled.")
     return pipe
