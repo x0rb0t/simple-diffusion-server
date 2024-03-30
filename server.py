@@ -192,7 +192,7 @@ def generate_img2img():
             return composite_image
 
         composite_image = compose_images(images, width, height)
-        composite_mask = compose_images(masks, width, height) if masks else None
+        composite_mask = compose_images(masks, width, height).convert("L") if masks else None
         # Print image size
         print(composite_image.size)
         print(composite_mask.size)
@@ -209,7 +209,7 @@ def generate_img2img():
 
         if extract_mask and composite_mask is not None:
             # Extract the generated content using the mask
-            extracted_image = Image.composite(generated_image, Image.new("RGBA", generated_image.size, extract_color), composite_mask.convert("L"))
+            extracted_image = Image.composite(generated_image, Image.new("RGBA", generated_image.size, extract_color), composite_mask)
         else:
             extracted_image = generated_image
 
