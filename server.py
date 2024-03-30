@@ -102,7 +102,7 @@ def generate_image():
             guidance_scale=guidance_scale,
             generator=generator
         ).images[0]
-        
+
         if (width != original_width) or (height != original_height):
             left = (width - original_width) // 2
             top = (height - original_height) // 2
@@ -193,9 +193,19 @@ def generate_img2img():
 
         composite_image = compose_images(images, width, height)
         composite_mask = compose_images(masks, width, height) if masks else None
-      
+        # Print image size
+        print(composite_image.size)
+        print(composite_mask.size)
         # Generate the image using the composite image and mask
-        generated_image = pipe(prompt, negative_prompt=negative_prompt, image=composite_image, mask_image=composite_mask, strength=strength, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
+        generated_image = pipe(
+            prompt,
+            negative_prompt=negative_prompt,
+            image=composite_image,
+            mask_image=composite_mask,
+            strength=strength,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            generator=generator).images[0]
 
         if extract_mask and composite_mask is not None:
             # Extract the generated content using the mask
