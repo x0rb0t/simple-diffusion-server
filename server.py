@@ -161,7 +161,7 @@ def generate_img2img():
                 return [process_image_data(img) for img in image_data]
             elif isinstance(image_data, dict):
                 image = base64.b64decode(image_data["image"].split(",")[1])
-                image = Image.open(io.BytesIO(image)).convert("RGB")
+                image = Image.open(io.BytesIO(image)).convert("RGBA")
                 return {
                     "x": image_data.get("x", 0),
                     "y": image_data.get("y", 0),
@@ -171,7 +171,7 @@ def generate_img2img():
                 }
             else:
                 image = base64.b64decode(image_data.split(",")[1])
-                return Image.open(io.BytesIO(image)).convert("RGB")
+                return Image.open(io.BytesIO(image)).convert("RGBA")
 
         images = process_image_data(images_data)
         masks = process_image_data(masks_data) if masks_data else None
@@ -193,13 +193,14 @@ def generate_img2img():
 
         composite_image = compose_images(images, width, height)
         composite_mask = compose_images(masks, width, height) if masks else None
+        composite_image = composite_image.convert("L") if composite_mask is not None else composite_image
 
         # Generate the image using the composite image and mask
         generated_image = img2img_pipe(prompt, negative_prompt=negative_prompt, image=composite_image, mask_image=composite_mask, strength=strength, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
 
         if extract_mask and composite_mask is not None:
             # Extract the generated content using the mask
-            extracted_image = Image.composite(generated_image, Image.new("RGB", generated_image.size, extract_color), composite_mask.convert("L"))
+            extracted_image = Image.composite(generated_image, Image.new("RGBA", generated_image.size, extract_color), composite_mask)
         else:
             extracted_image = generated_image
 
