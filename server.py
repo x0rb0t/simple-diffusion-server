@@ -98,9 +98,11 @@ def generate_image():
         init_image_tensor = torch.from_numpy(np.array(init_image)).float() / 255.0
         init_image_tensor = init_image_tensor.permute(2, 0, 1).unsqueeze(0)
         init_image_tensor = init_image_tensor.half().cuda()
+        
         white_mask = Image.new("L", (width, height), 255)
         while_mask_tensor = torch.from_numpy(np.array(white_mask)).float() / 255.0
         while_mask_tensor = while_mask_tensor.unsqueeze(0).unsqueeze(0)
+        while_mask_tensor = while_mask_tensor.half().cuda()
 
         generated_image = pipe(
             prompt,
