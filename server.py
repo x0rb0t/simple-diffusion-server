@@ -121,7 +121,7 @@ def generate_image():
     except Exception as e:
         logger.exception("Error generating image")
         return jsonify({"error": str(e)}), 500
-
+    
 @app.route('/generate-img2img', methods=['POST'])
 def generate_img2img():
     try:
@@ -132,7 +132,9 @@ def generate_img2img():
         guidance_scale = data.get("guidance_scale", 7.5)
         seed = data.get("seed", None)
         image_format = data.get("format", "jpeg").lower()
-        image_data = data.get("image")
+        strength = data.get("strength", 0.8)
+        extract_mask = data.get("extract_mask", False)
+        extract_color = data.get("extract_color", (0, 0, 0, 0))
 
         original_width = data.get("width", 1024)
         original_height = data.get("height", 1024)
@@ -148,13 +150,58 @@ def generate_img2img():
         if image_format not in ["jpeg", "png"]:
             return jsonify({"error": "Invalid image format. Choose 'jpeg' or 'png'."}), 400
 
-        if image_data is None:
-            return jsonify({"error": "Image data is required for img2img."}), 400
+        images_data = data.get("images", [])
+        masks_data = data.get("masks", [])
 
-        image_data = base64.b64decode(image_data.split(",")[1])
-        image = Image.open(io.BytesIO(image_data)).convert("RGB")
+        if not images_data:
+            return jsonify({"error": "At least one image is required for img2img."}), 400
 
-        image = img2img_pipe(prompt, negative_prompt=negative_prompt, image=image, width=width, height=height, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
+        def process_image_data(image_data):
+            if isinstance(image_data, list):
+                return [process_image_data(img) for img in image_data]
+            elif isinstance(image_data, dict):
+                image = base64.b64decode(image_data["image"].split(",")[1])
+                image = Image.open(io.BytesIO(image)).convert("RGB")
+                return {
+                    "x": image_data.get("x", 0),
+                    "y": image_data.get("y", 0),
+                    "sx": image_data.get("sx", 1),
+                    "sy": image_data.get("sy", 1),
+                    "image": image
+                }
+            else:
+                image = base64.b64decode(image_data.split(",")[1])
+                return Image.open(io.BytesIO(image)).convert("RGB")
+
+        images = process_image_data(images_data)
+        masks = process_image_data(masks_data) if masks_data else None
+
+        def compose_images(images, width, height):
+            composite_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+            for image_data in images:
+                if isinstance(image_data, dict):
+                    image = image_data["image"]
+                    x = image_data["x"]
+                    y = image_data["y"]
+                    sx = image_data["sx"]
+                    sy = image_data["sy"]
+                    image = image.resize((int(image.width * sx), int(image.height * sy)))
+                    composite_image.paste(image, (x, y), mask=image)
+                else:
+                    composite_image.paste(image_data, (0, 0))
+            return composite_image
+
+        composite_image = compose_images(images, width, height)
+        composite_mask = compose_images(masks, width, height) if masks else None
+
+        # Generate the image using the composite image and mask
+        generated_image = img2img_pipe(prompt, negative_prompt=negative_prompt, image=composite_image, mask_image=composite_mask, strength=strength, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
+
+        if extract_mask and composite_mask is not None:
+            # Extract the generated content using the mask
+            extracted_image = Image.composite(generated_image, Image.new("RGB", generated_image.size, extract_color), composite_mask.convert("L"))
+        else:
+            extracted_image = generated_image
 
         if (width != original_width) or (height != original_height):
             left = (width - original_width) // 2
@@ -162,10 +209,10 @@ def generate_img2img():
             right = left + original_width
             bottom = top + original_height
 
-            image = image.crop((left, top, right, bottom))
+            extracted_image = extracted_image.crop((left, top, right, bottom))
 
         buffer = io.BytesIO()
-        image.save(buffer, format=image_format)
+        extracted_image.save(buffer, format=image_format)
         mime_type = "image/jpeg" if image_format == "jpeg" else "image/png"
         data_uri = "data:" + mime_type + ";base64," + base64.b64encode(buffer.getvalue()).decode('utf-8')
 
@@ -174,6 +221,7 @@ def generate_img2img():
     except Exception as e:
         logger.exception("Error generating img2img")
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(port=3101)
