@@ -109,6 +109,8 @@ def generate_image():
             negative_prompt=negative_prompt,
             image=init_image_tensor,
             mask_image=while_mask_tensor,
+            height=height,
+            width=width,
             strength=1,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
@@ -166,6 +168,9 @@ def generate_img2img():
         width = ((original_width + 7) // 8) * 8
         height = ((original_height + 7) // 8) * 8
 
+        offset_x = (width - original_width) // 2
+        offset_y = (height - original_height) // 2
+
         if seed is not None:
             generator = torch.manual_seed(seed)
         else:
@@ -200,7 +205,7 @@ def generate_img2img():
         images = process_image_data(images_data)
         masks = process_image_data(masks_data) if masks_data else None
 
-        def compose_images(images, width, height):
+        def compose_images(images, width, height, offset_x=0, offset_y=0):
             composite_image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
             for image_data in images:
                 if isinstance(image_data, dict):
@@ -211,13 +216,13 @@ def generate_img2img():
                     sy = image_data["sy"]
                     if (sx != 1) or (sy != 1):
                         image = image.resize((int(image.width * sx), int(image.height * sy)))
-                    composite_image.paste(image, (x, y), image)
+                    composite_image.paste(image, (offset_x + x, offset_y + y), image)
                 else:
-                    composite_image.paste(image_data, (0, 0))
+                    composite_image.paste(image_data, (offset_x, offset_y))
             return composite_image
 
-        composite_image = compose_images(images, width, height).convert("RGB")
-        composite_mask = compose_images(masks, width, height).convert("L") if masks else None
+        composite_image = compose_images(images, width, height, offset_x, offset_y).convert("RGB")
+        composite_mask = compose_images(masks, width, height, offset_x, offset_y).convert("L") if masks else None
         #Convert to tensor
         composite_image_tensor = torch.from_numpy(np.array(composite_image)).float() / 255.0
         composite_image_tensor = composite_image_tensor.permute(2, 0, 1).unsqueeze(0)
@@ -243,6 +248,8 @@ def generate_img2img():
             negative_prompt=negative_prompt,
             image=composite_image_tensor,
             mask_image=composite_mask_tensor,
+            height=height,
+            width=width,
             strength=strength,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
@@ -252,6 +259,12 @@ def generate_img2img():
         print("composite_mask size:", composite_mask.size if composite_mask is not None else None)
         print("composite_mask_tensor size:", composite_mask_tensor.size() if composite_mask_tensor is not None else None)
 
+        if extract_mask and composite_mask_tensor is not None:
+            # Extract the generated content using the mask
+            extracted_image = Image.composite(generated_image.convert("RGBA"), Image.new("RGBA", generated_image.size, extract_color), composite_mask)
+        else:
+            extracted_image = generated_image
+
         gen_width, gen_height = generated_image.size
         if (gen_width != original_width) or (gen_width != original_height):
             left = (gen_width - original_width) // 2
@@ -259,14 +272,6 @@ def generate_img2img():
             right = left + original_width
             bottom = top + original_height
             generated_image = generated_image.crop((left, top, right, bottom))
-
-        if extract_mask and composite_mask_tensor is not None:
-            # Extract the generated content using the mask
-            extracted_image = Image.composite(generated_image.convert("RGBA"), Image.new("RGBA", generated_image.size, extract_color), composite_mask)
-        else:
-            extracted_image = generated_image
-
-        
 
         buffer = io.BytesIO()
         if image_format == "jpeg":
