@@ -59,6 +59,7 @@ def load_models():
 
     pipe.to("cuda")
     pipe.enable_vae_slicing()
+    pipe.enable_attention_slicing()
 
     print("Models loaded")
     return pipe
