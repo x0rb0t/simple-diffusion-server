@@ -69,6 +69,9 @@ def load_models():
     pipe.to("cuda")
     img2img_pipe.to("cuda")
 
+    pipe.enable_vae_slicing()
+    img2img_pipe.enable_vae_slicing()
+
     print("Models loaded")
     return pipe, img2img_pipe
 
