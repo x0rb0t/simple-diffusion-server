@@ -140,7 +140,15 @@ def generate_img2img():
         image_format = data.get("format", "jpeg").lower()
         strength = data.get("strength", 0.8)
         extract_mask = data.get("extract_mask", False)
+        # Parse the extract_color parameter
         extract_color = data.get("extract_color", (0, 0, 0, 0))
+        if isinstance(extract_color, list):
+            extract_color = tuple(extract_color)
+        elif isinstance(extract_color, str):
+            extract_color = tuple(map(int, extract_color.split(",")))
+        else:
+            extract_color = (0, 0, 0, 0)  # Default to transparent black if invalid format
+
 
         original_width = data.get("width", 1024)
         original_height = data.get("height", 1024)
@@ -225,7 +233,7 @@ def generate_img2img():
             guidance_scale=guidance_scale,
             generator=generator).images[0]
 
-        if extract_mask and composite_mask is not None:
+        if extract_mask and composite_mask_tensor is not None:
             # Extract the generated content using the mask
             extracted_image = Image.composite(generated_image, Image.new("RGBA", generated_image.size, extract_color), composite_mask)
         else:
