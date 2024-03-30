@@ -93,8 +93,16 @@ def generate_image():
             return jsonify({"error": "Invalid image format. Choose 'jpeg' or 'png'."}), 400
 
         init_image = Image.new("RGB", (width, height))
-        generated_image = pipe(prompt, negative_prompt=negative_prompt, init_image=init_image, strength=1, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
-
+        generated_image = pipe(
+            prompt,
+            negative_prompt=negative_prompt,
+            image=init_image,
+            strength=1,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            generator=generator
+        ).images[0]
+        
         if (width != original_width) or (height != original_height):
             left = (width - original_width) // 2
             top = (height - original_height) // 2
