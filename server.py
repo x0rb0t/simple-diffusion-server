@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify
-from diffusers import UNet2DConditionModel, StableDiffusionPipeline, StableDiffusionXLPipeline, DiffusionPipeline, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler, AutoencoderKL
+from diffusers import UNet2DConditionModel, StableDiffusionXLImg2ImgPipeline, EulerDiscreteScheduler, EulerAncestralDiscreteScheduler, AutoencoderKL
 import torch
 from PIL import Image, ImageOps
 import io
@@ -32,15 +32,15 @@ def load_models():
     print("Loading models...")
     if args.unet == '':
         if is_local_file(args.model):
-            pipe = StableDiffusionXLPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
+            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
         else:    
-            pipe = DiffusionPipeline.from_pretrained(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16")
+            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16")
     else:
         unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.bfloat16, variant="fp16")
         if is_local_file(args.model):
-            pipe = StableDiffusionXLPipeline.from_single_file(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
+            pipe = StableDiffusionXLImg2ImgPipeline.from_single_file(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
         else:
-            pipe = DiffusionPipeline.from_pretrained(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16")
+            pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16")
 
     lora_dirs = args.lora_dirs.split(':') if args.lora_dirs else []
     lora_scales = [float(scale) for scale in args.lora_scales.split(':')] if args.lora_scales else []
@@ -60,14 +60,7 @@ def load_models():
     
     pipe.to("cuda")
 
-    
-
-    # Compile the UNet and VAE
-    print("Compiling models...")
-    #pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
-    #pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
-
-    print("Models loaded and compiled.")
+    print("Models loaded")
     return pipe
 
 pipe = load_models()
