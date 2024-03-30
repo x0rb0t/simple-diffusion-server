@@ -25,7 +25,7 @@ else:
         scheduler=os.getenv('SCHEDULER', 'euler_a'),
     )
 
-app = Flask(__name__)
+
 vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
 
 def load_models():
@@ -68,6 +68,8 @@ def load_models():
     return pipe
 
 pipe = load_models()
+
+app = Flask(__name__)
 
 @app.route('/generate-image', methods=['POST'])
 def generate_image():
