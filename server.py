@@ -33,18 +33,16 @@ def load_models():
     if args.unet == '':
         if is_local_file(args.model):
             pipe = StableDiffusionXLPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
-            img2img_pipe = StableDiffusionXLImg2ImgPipeline(**pipe.components)
         else:    
             pipe = StableDiffusionXLPipeline.from_pretrained(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16")
-            img2img_pipe = StableDiffusionXLImg2ImgPipeline(**pipe.components)
     else:
         unet = UNet2DConditionModel.from_pretrained(args.unet, torch_dtype=torch.bfloat16, variant="fp16")
         if is_local_file(args.model):
             pipe = StableDiffusionXLPipeline.from_single_file(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
-            img2img_pipe = StableDiffusionXLImg2ImgPipeline(**pipe.components)
         else:
             pipe = StableDiffusionXLPipeline.from_pretrained(args.model, vae=vae, unet=unet, torch_dtype=torch.bfloat16, variant="fp16")
-            img2img_pipe = StableDiffusionXLImg2ImgPipeline(**pipe.components)
+
+    img2img_pipe = StableDiffusionXLImg2ImgPipeline(**pipe.components)
 
     lora_dirs = args.lora_dirs.split(':') if args.lora_dirs else []
     lora_scales = [float(scale) for scale in args.lora_scales.split(':')] if args.lora_scales else []
@@ -59,13 +57,15 @@ def load_models():
         img2img_pipe.fuse_lora(lora_scale=lsc)
 
     if args.scheduler == "euler":
-        pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
-        img2img_pipe.scheduler = EulerDiscreteScheduler.from_config(img2img_pipe.scheduler.config)
+        scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
     elif args.scheduler == "euler_a":
-        pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
-        img2img_pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(img2img_pipe.scheduler.config)
+        scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+    else:
+        scheduler = pipe.scheduler
 
-    
+    pipe.scheduler = scheduler
+    img2img_pipe.scheduler = scheduler
+
     pipe.to("cuda")
     img2img_pipe.to("cuda")
 
