@@ -193,14 +193,13 @@ def generate_img2img():
 
         composite_image = compose_images(images, width, height)
         composite_mask = compose_images(masks, width, height) if masks else None
-        composite_image = composite_image.convert("L") if composite_mask is not None else composite_image
-
+      
         # Generate the image using the composite image and mask
         generated_image = img2img_pipe(prompt, negative_prompt=negative_prompt, image=composite_image, mask_image=composite_mask, strength=strength, num_inference_steps=num_inference_steps, guidance_scale=guidance_scale, generator=generator).images[0]
 
         if extract_mask and composite_mask is not None:
             # Extract the generated content using the mask
-            extracted_image = Image.composite(generated_image, Image.new("RGBA", generated_image.size, extract_color), composite_mask)
+            extracted_image = Image.composite(generated_image, Image.new("RGBA", generated_image.size, extract_color), composite_mask.convert("L"))
         else:
             extracted_image = generated_image
 
