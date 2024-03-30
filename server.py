@@ -261,9 +261,9 @@ def generate_img2img():
 
         if extract_mask and composite_mask_tensor is not None:
             # Extract the generated content using the mask
-            extracted_image = Image.composite(generated_image.convert("RGBA"), Image.new("RGBA", generated_image.size, extract_color), composite_mask)
+            generated_image = Image.composite(generated_image.convert("RGBA"), Image.new("RGBA", generated_image.size, extract_color), composite_mask)
         else:
-            extracted_image = generated_image
+            generated_image = generated_image
 
         gen_width, gen_height = generated_image.size
         if (gen_width != original_width) or (gen_width != original_height):
@@ -276,9 +276,9 @@ def generate_img2img():
         buffer = io.BytesIO()
         if image_format == "jpeg":
             # Convert the image to RGB color mode for JPEG format
-            extracted_image = extracted_image.convert("RGB")
+            generated_image = generated_image.convert("RGB")
 
-        extracted_image.save(buffer, format=image_format)
+        generated_image.save(buffer, format=image_format)
         mime_type = "image/jpeg" if image_format == "jpeg" else "image/png"
         data_uri = "data:" + mime_type + ";base64," + base64.b64encode(buffer.getvalue()).decode('utf-8')
 
