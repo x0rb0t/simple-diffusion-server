@@ -118,6 +118,10 @@ def generate_image():
             generated_image = generated_image.crop((left, top, right, bottom))
 
         buffer = io.BytesIO()
+        if image_format == "jpeg":
+            # Convert the image to RGB color mode for JPEG format
+            generated_image = generated_image.convert("RGB")
+            
         generated_image.save(buffer, format=image_format)
         mime_type = "image/jpeg" if image_format == "jpeg" else "image/png"
         data_uri = "data:" + mime_type + ";base64," + base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -248,6 +252,10 @@ def generate_img2img():
             extracted_image = extracted_image.crop((left, top, right, bottom))
 
         buffer = io.BytesIO()
+        if image_format == "jpeg":
+            # Convert the image to RGB color mode for JPEG format
+            extracted_image = extracted_image.convert("RGB")
+
         extracted_image.save(buffer, format=image_format)
         mime_type = "image/jpeg" if image_format == "jpeg" else "image/png"
         data_uri = "data:" + mime_type + ";base64," + base64.b64encode(buffer.getvalue()).decode('utf-8')
