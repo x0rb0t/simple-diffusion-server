@@ -99,8 +99,8 @@ def generate_image():
         init_image_tensor = init_image_tensor.permute(2, 0, 1).unsqueeze(0)
         init_image_tensor = init_image_tensor.half().cuda()
 
-        white_mask = Image.new("L", (width, height), 255)
-        while_mask_tensor = torch.from_numpy(np.array(white_mask)).float() / 255.0
+        #white_mask = Image.new("L", (width, height), 255)
+        while_mask_tensor = torch.ones_like(init_image_tensor[:, 0:1, :, :])
         while_mask_tensor = while_mask_tensor.unsqueeze(0).unsqueeze(0)
         while_mask_tensor = while_mask_tensor.half().cuda()
 
@@ -152,6 +152,7 @@ def generate_img2img():
         image_format = data.get("format", "jpeg").lower()
         strength = data.get("strength", 0.8)
         extract_mask = data.get("extract_mask", False)
+        apply_mask = data.get("apply_mask", True)
         # Parse the extract_color parameter
         extract_color = data.get("extract_color", (0, 0, 0, 0))
         if isinstance(extract_color, list):
@@ -227,11 +228,12 @@ def generate_img2img():
         composite_image_tensor = torch.from_numpy(np.array(composite_image)).float() / 255.0
         composite_image_tensor = composite_image_tensor.permute(2, 0, 1).unsqueeze(0)
 
-        if composite_mask is not None:
+        if composite_mask is not None and apply_mask:
             composite_mask_tensor = torch.from_numpy(np.array(composite_mask)).float() / 255.0
             composite_mask_tensor = composite_mask_tensor.unsqueeze(0).unsqueeze(0)
         else:
-            composite_mask_tensor = None
+            #create a white mask
+            composite_mask_tensor = torch.ones_like(composite_image_tensor[:, 0:1, :, :])
 
         # Convert to fp16 and move to CUDA
         composite_image_tensor = composite_image_tensor.half().cuda()
