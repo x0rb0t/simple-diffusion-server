@@ -183,9 +183,6 @@ def generate_img2img():
         images_data = data.get("images", [])
         masks_data = data.get("masks", [])
 
-        if not images_data:
-            return jsonify({"error": "At least one image is required for img2img."}), 400
-
         def process_image_data(image_data):
             if isinstance(image_data, list):
                 return [process_image_data(img) for img in image_data]
