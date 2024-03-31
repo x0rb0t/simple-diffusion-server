@@ -99,8 +99,8 @@ def generate_image():
         init_image_tensor = init_image_tensor.permute(2, 0, 1).unsqueeze(0)
         init_image_tensor = init_image_tensor.half().cuda()
 
-        #white_mask = Image.new("L", (width, height), 255)
-        while_mask_tensor = torch.ones_like(init_image_tensor[:, 0:1, :, :])
+        white_mask = Image.new("L", (width, height), 255)
+        while_mask_tensor = torch.from_numpy(np.array(white_mask)).float() / 255.0
         while_mask_tensor = while_mask_tensor.unsqueeze(0).unsqueeze(0)
         while_mask_tensor = while_mask_tensor.half().cuda()
 
@@ -233,7 +233,9 @@ def generate_img2img():
             composite_mask_tensor = composite_mask_tensor.unsqueeze(0).unsqueeze(0)
         else:
             #create a white mask
-            composite_mask_tensor = torch.ones_like(composite_image_tensor[:, 0:1, :, :])
+            white_mask = Image.new("L", (width, height), 255)
+            composite_mask_tensor = torch.from_numpy(np.array(white_mask)).float() / 255.0
+            composite_mask_tensor = composite_mask_tensor.unsqueeze(0).unsqueeze(0)
 
         # Convert to fp16 and move to CUDA
         composite_image_tensor = composite_image_tensor.half().cuda()
