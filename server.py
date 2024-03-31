@@ -59,8 +59,8 @@ def load_models():
         pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
 
     pipe.to("cuda")
-    pipe.enable_vae_slicing()
-    pipe.enable_attention_slicing()
+    #pipe.enable_vae_slicing()
+    #pipe.enable_attention_slicing()
 
     print("Models loaded")
     return pipe
@@ -239,8 +239,8 @@ def generate_img2img():
             composite_mask_tensor = composite_mask_tensor.half().cuda()
 
         # Print size
-        print(composite_image_tensor.size())
-        print(composite_mask_tensor.size() if composite_mask_tensor is not None else None)
+        #print(composite_image_tensor.size())
+        #print(composite_mask_tensor.size() if composite_mask_tensor is not None else None)
 
         # Generate the image using the composite image and mask
         generated_image = pipe(
@@ -255,9 +255,9 @@ def generate_img2img():
             guidance_scale=guidance_scale,
             generator=generator).images[0]
         
-        print("generated_image size:", generated_image.size)
-        print("composite_mask size:", composite_mask.size if composite_mask is not None else None)
-        print("composite_mask_tensor size:", composite_mask_tensor.size() if composite_mask_tensor is not None else None)
+        #print("generated_image size:", generated_image.size)
+        #print("composite_mask size:", composite_mask.size if composite_mask is not None else None)
+        #print("composite_mask_tensor size:", composite_mask_tensor.size() if composite_mask_tensor is not None else None)
 
         if extract_mask and composite_mask_tensor is not None:
             # Extract the generated content using the mask
