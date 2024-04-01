@@ -1,0 +1,6 @@
+flask
+diffusers
+torch
+pillow
+numpy
+gunicorn
