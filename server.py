@@ -24,6 +24,8 @@ else:
         lora_dirs=os.getenv('LORA_DIRS', ''),
         lora_scales=os.getenv('LORA_SCALES', ''),
         scheduler=os.getenv('SCHEDULER', 'euler_a'),
+        host=os.getenv('HOST', '0.0.0.0'),
+        port=int(os.getenv('PORT', 8001))
     )
 
 
@@ -291,4 +293,4 @@ def generate_img2img():
 
 
 if __name__ == '__main__':
-    app.run(port=3101)
+    app.run(host=args.host, port=args.port)
