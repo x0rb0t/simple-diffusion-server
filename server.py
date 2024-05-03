@@ -25,14 +25,25 @@ else:
         lora_scales=os.getenv('LORA_SCALES', ''),
         scheduler=os.getenv('SCHEDULER', 'euler_a'),
         host=os.getenv('HOST', '0.0.0.0'),
-        port=int(os.getenv('PORT', 8001))
+        port=int(os.getenv('PORT', 8001)),
+        vae=os.getenv('VAE_MODEL', 'madebyollin/sdxl-vae-fp16-fix')
     )
 
 
-vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.bfloat16)
+
+#vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.bfloat16)
 
 def load_models():
     print("Loading models...")
+    vae = None
+    if args.vae == '':
+        vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.bfloat16)
+    else:
+        if is_local_file(args.vae):
+            vae = AutoencoderKL.from_single_file(args.vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True)
+        else:
+            vae = AutoencoderKL.from_pretrained(args.vae, torch_dtype=torch.bfloat16, variant="fp16")
+
     if args.unet == '':
         if is_local_file(args.model):
             pipe = StableDiffusionXLInpaintPipeline.from_single_file(args.model, vae=vae, torch_dtype=torch.bfloat16, variant="fp16", use_safetensors=True, num_in_channels=4, ignore_mismatched_sizes=True)
