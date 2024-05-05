@@ -4,3 +4,6 @@ torch
 pillow
 numpy
 gunicorn
+safetensors
+accelerate
+transformers
